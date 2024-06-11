@@ -1,11 +1,20 @@
 import createError, { HttpError } from 'http-errors';
 import express, { NextFunction, Request, Response } from 'express';
-import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import dotenv from 'dotenv';
-
 dotenv.config();
+
+// modules for authentication
+import session from 'express-session';
+import passport from 'passport';
+import passportLocal from 'passport-local';
+
+// define authentication strategy
+let strategy = passportLocal.Strategy; // alias
+
+// import the User Model
+import User from '../Models/user';
 
 // import mongoose and related modules
 import mongoose from 'mongoose';
@@ -29,6 +38,24 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// setup express session
+app.use(session({
+  secret: db.secret,
+  saveUninitialized: false,
+  resave: false
+}));
+
+// initialize passport and session
+app.use(passport.initialize());
+app.use(passport.session());
+
+// implement an authentication strategy
+passport.use(User.createStrategy());
+
+// serialize and deserialize the User info
+passport.serializeUser(User.serializeUser() as any);
+passport.deserializeUser(User.deserializeUser());
 
 app.use('/api', indexRouter);
 
